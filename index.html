@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LibriTrack - School Library Management System</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            },
+            accent: {
+              500: '#0ea5e9',
+              600: '#0284c7',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar & Aesthetics */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .barcode-line {
+      display: inline-block;
+      height: 38px;
+      background: #1e293b;
+      margin: 0 1px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+  <!-- ================= TOP APP BAR & ROLE SWITCHER ================= -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('catalog')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-accent-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i data-lucide="book-open-check" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <span class="font-heading font-bold text-xl tracking-tight text-slate-900 flex items-center gap-1.5">
+            LibriTrack <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-brand-50 text-brand-700 border border-brand-200">School Portal</span>
+          </span>
+          <p class="text-[11px] text-slate-500 hidden sm:block">Delhi Public Senior Secondary School Library</p>
+        </div>
+      </div>
+
+      <!-- Quick Role Switch Pill -->
+      <div class="flex items-center gap-2 sm:gap-4">
+        <div class="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-medium border border-slate-200">
+          <button id="role-pill-student" onclick="switchRole('student')" 
+            class="px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+            <span class="hidden md:inline">Student Mode</span>
+            <span class="md:hidden">Student</span>
+          </button>
+          <button id="role-pill-admin" onclick="switchRole('admin')" 
+            class="px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span class="hidden md:inline">Librarian (Admin)</span>
+            <span class="md:hidden">Admin</span>
+          </button>
+        </div>
+
+        <!-- User Profile Avatar/Menu -->
+        <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+          <div id="user-avatar-container" class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-xs flex items-center justify-center shadow-inner">
+            AS
+          </div>
+          <div class="hidden lg:block text-left">
+            <div id="current-user-name" class="text-xs font-bold text-slate-800 leading-tight">Aarav Sharma</div>
+            <div id="current-user-role-desc" class="text-[10px] text-slate-500 leading-tight">Grade 11-A (Roll #1024)</div>
+          </div>
+          <button onclick="openLoginModal()" title="Switch Account / Login" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs Bar -->
+    <nav class="bg-white border-t border-slate-100 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-4 overflow-x-auto py-1 text-sm font-medium scrollbar-none" id="main-nav-tabs">
+        <!-- Dynamically injected based on active role -->
+      </div>
+    </nav>
+  </header>
+
+  <!-- ================= NOTIFICATION TOAST CONTAINER ================= -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ================= MAIN CONTENT CONTAINER ================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+    
+    <!-- BANNER ANNOUNCEMENT -->
+    <div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-brand-700 via-brand-600 to-accent-600 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+      <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+      <div class="flex items-center gap-3.5 z-10">
+        <div class="p-3 bg-white/15 rounded-xl backdrop-blur-md">
+          <i data-lucide="sparkles" class="w-6 h-6 text-amber-300"></i>
+        </div>
+        <div>
+          <h2 class="font-heading font-bold text-lg sm:text-xl">National Reading Month & STEM Book Expo 2026</h2>
+          <p class="text-xs sm:text-sm text-indigo-100 mt-0.5">Renewals extended to 21 days for all reference textbooks this semester.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 z-10 w-full sm:w-auto">
+        <button onclick="resetToSampleData()" class="px-3.5 py-1.5 text-xs bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 rounded-xl font-medium transition flex items-center justify-center gap-1.5 w-full sm:w-auto">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset Demo Data
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= VIEW 1: BOOK DISCOVERY / CATALOG (Shared / Student) ================= -->
+    <section id="view-catalog" class="tab-view block space-y-6">
+      
+      <!-- Search, Filters and Sorting toolbar -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        
+        <!-- Search Input -->
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input 
+            type="text" 
+            id="catalog-search" 
+            oninput="handleCatalogFilter()" 
+            placeholder="Search by Title, Author, ISBN, Subject or Shelf Location..." 
+            class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-sm transition"
+          />
+        </div>
+
+        <!-- Filter Selects -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <select id="catalog-category-filter" onchange="handleCatalogFilter()" class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-700 focus:outline-none focus:border-brand-500">
+            <option value="All">All Categories</option>
+            <option value="Science">Science & Physics</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Literature">Literature & Fiction</option>
+            <option value="History">History & Social Studies</option>
+            <option value="Biography">Biographies</option>
+          </select>
+
+          <select id="catalog-availability-filter" onchange="handleCatalogFilter()" class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-700 focus:outline-none focus:border-brand-500">
+            <option value="all">All Copies</option>
+            <option value="available">Only Available</option>
+            <option value="low">Low Stock (&le; 2)</option>
+          </select>
+
+          <button id="admin-add-book-btn" onclick="openAddBookModal()" class="hidden text-xs bg-brand-600 hover:bg-brand-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-sm transition items-center gap-1.5">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Add New Book
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Category Pills -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-medium scrollbar-none" id="category-pills">
+        <!-- Injected dynamically -->
+      </div>
+
+      <!-- Books Grid Count indicator -->
+      <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+        <span>Showing <strong id="catalog-count" class="text-slate-800">0</strong> books</span>
+        <span class="flex items-center gap-2">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span> Available for Instant Loan
+        </span>
+      </div>
+
+      <!-- Book Grid -->
+      <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <!-- Rendered by JavaScript -->
+      </div>
+
+      <!-- Empty state -->
+      <div id="catalog-empty-state" class="hidden text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
+        <div class="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 mb-3">
+          <i data-lucide="book-x" class="w-7 h-7"></i>
+        </div>
+        <h4 class="text-base font-semibold text-slate-700">No books found</h4>
+        <p class="text-xs text-slate-400 max-w-sm mx-auto mt-1">Try adjusting your search terms or clearing the selected category filters.</p>
+        <button onclick="clearCatalogFilters()" class="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium transition">
+          Clear Filters
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ================= VIEW 2: STUDENT'S BORROWED BOOKS ================= -->
+    <section id="view-student-loans" class="tab-view hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="font-heading font-bold text-lg text-slate-900">My Borrowed Books & Active Loans</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Keep track of your due dates. School library fine is ₹5 per day on overdue titles.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-800 flex items-center gap-1.5">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600"></i>
+              Total Dues: <span id="student-total-fine-badge" class="text-sm font-bold text-amber-900">₹0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loan List Table / Cards -->
+        <div id="student-loan-list" class="mt-6 space-y-4">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div id="student-no-loans" class="hidden text-center py-12">
+          <i data-lucide="library" class="w-12 h-12 text-slate-300 mx-auto mb-2"></i>
+          <h4 class="text-sm font-medium text-slate-600">No books currently borrowed</h4>
+          <p class="text-xs text-slate-400 mt-1">Visit the Book Catalog to discover and request textbooks or fiction novels.</p>
+          <button onclick="navigateTo('catalog')" class="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-medium transition">
+            Browse Catalog
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 3: DIGITAL LIBRARY ID CARD ================= -->
+    <section id="view-student-idcard" class="tab-view hidden space-y-6">
+      <div class="max-w-xl mx-auto">
+        <!-- Interactive Card Visual -->
+        <div class="relative bg-gradient-to-br from-slate-900 via-indigo-950 to-brand-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10 overflow-hidden">
+          <!-- Background decorative shapes -->
+          <div class="absolute -right-12 -top-12 w-48 h-48 bg-brand-500/20 rounded-full blur-2xl pointer-events-none"></div>
+          <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-accent-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                <i data-lucide="school" class="w-6 h-6 text-indigo-300"></i>
+              </div>
+              <div>
+                <h3 class="font-heading font-bold text-base tracking-wide uppercase">Delhi Public Senior Secondary</h3>
+                <p class="text-[11px] text-slate-300 tracking-wider">OFFICIAL STUDENT LIBRARY ACCESS CARD</p>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+              Active Member
+            </span>
+          </div>
+
+          <!-- Card Body -->
+          <div class="mt-6 flex flex-col sm:flex-row items-center gap-6">
+            <!-- Student Photo Frame -->
+            <div class="relative">
+              <div class="w-24 h-28 rounded-2xl bg-gradient-to-t from-brand-600 to-indigo-400 p-0.5 shadow-lg">
+                <div class="w-full h-full bg-slate-800 rounded-[14px] flex flex-col items-center justify-center overflow-hidden">
+                  <i data-lucide="user" class="w-12 h-12 text-slate-400"></i>
+                </div>
+              </div>
+              <div class="absolute -bottom-2 -right-1 bg-amber-400 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded shadow">
+                2025-26
+              </div>
+            </div>
+
+            <!-- Details -->
+            <div class="flex-1 text-center sm:text-left space-y-1.5">
+              <h4 id="card-student-name" class="font-heading text-xl font-bold tracking-tight text-white">Aarav Sharma</h4>
+              <p class="text-xs text-indigo-200">Roll No: <span id="card-student-roll" class="font-semibold text-white">DPS-2024-1024</span></p>
+              <p class="text-xs text-indigo-200">Standard / Grade: <span id="card-student-grade" class="font-semibold text-white">Grade 11 - Science (Sec A)</span></p>
+              <div class="pt-2 flex items-center justify-center sm:justify-start gap-4 text-[11px] text-slate-300">
+                <div>
+                  <span class="block text-[10px] text-slate-400">Max Allowance</span>
+                  <span class="font-bold text-white">3 Books</span>
+                </div>
+                <div class="border-l border-white/20 pl-4">
+                  <span class="block text-[10px] text-slate-400">Security Clearance</span>
+                  <span class="font-bold text-emerald-400">Level 2 (Lab & Library)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Barcode Area -->
+          <div class="mt-7 pt-4 border-t border-white/10 flex flex-col items-center justify-center bg-white rounded-2xl p-3 text-slate-900">
+            <div class="flex items-center justify-center gap-0.5 py-1" id="barcode-visual">
+              <!-- Dynamically rendered vertical bars for realistic barcode -->
+            </div>
+            <span class="text-[10px] font-mono tracking-widest text-slate-600 mt-1" id="card-barcode-text">*DPS-LIB-1024-2026*</span>
+          </div>
+
+        </div>
+
+        <p class="text-center text-xs text-slate-400 mt-3 flex items-center justify-center gap-1.5">
+          <i data-lucide="info" class="w-3.5 h-3.5"></i> Present this digital barcode at the physical circulation desk for zero-touch checkout.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 4: READING HISTORY & WISHLIST ================= -->
+    <section id="view-student-history" class="tab-view hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="font-heading font-bold text-lg text-slate-900">Borrowing History & Returned Books</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Your lifetime reading record at Scholars Library.</p>
+          </div>
+          <div class="text-xs text-slate-500">
+            Total Read: <strong id="history-count" class="text-brand-600">0 books</strong>
+          </div>
+        </div>
+
+        <div id="student-history-table" class="mt-4 overflow-x-auto">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 5: ADMIN / LIBRARIAN DASHBOARD ================= -->
+    <section id="view-admin-dashboard" class="tab-view hidden space-y-6">
+      
+      <!-- KPI Stats Overview -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-brand-600 flex items-center justify-center mb-2">
+            <i data-lucide="book-marked" class="w-4 h-4"></i>
+          </div>
+          <p class="text-xs font-medium text-slate-500">Total Titles</p>
+          <h4 id="stat-total-titles" class="text-xl font-heading font-bold text-slate-900 mt-0.5">0</h4>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+          </div>
+          <p class="text-xs font-medium text-slate-500">Total Copies</p>
+          <h4 id="stat-total-copies" class="text-xl font-heading font-bold text-slate-900 mt-0.5">0</h4>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+            <i data-lucide="book-up" class="w-4 h-4"></i>
+          </div>
+          <p class="text-xs font-medium text-slate-500">Currently Issued</p>
+          <h4 id="stat-issued-books" class="text-xl font-heading font-bold text-slate-900 mt-0.5">0</h4>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center mb-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          </div>
+          <p class="text-xs font-medium text-slate-500">Overdue Returns</p>
+          <h4 id="stat-overdue-books" class="text-xl font-heading font-bold text-rose-600 mt-0.5">0</h4>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-2">
+            <i data-lucide="users" class="w-4 h-4"></i>
+          </div>
+          <p class="text-xs font-medium text-slate-500">Active Students</p>
+          <h4 id="stat-total-students" class="text-xl font-heading font-bold text-slate-900 mt-0.5">0</h4>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
+            <i data-lucide="indian-rupee" class="w-4 h-4"></i>
+          </div>
+          <p class="text-xs font-medium text-slate-500">Pending Fines</p>
+          <h4 id="stat-pending-fines" class="text-xl font-heading font-bold text-amber-600 mt-0.5">₹0</h4>
+        </div>
+
+      </div>
+
+      <!-- Two Column Layout: Quick Issue & Overdue Action Desk -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Circulation Action: Issue Desk -->
+        <div class="lg:col-span-5 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div class="flex items-center space-x-2.5">
+                <div class="p-2 bg-brand-50 text-brand-600 rounded-xl">
+                  <i data-lucide="arrow-right-left" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h3 class="font-heading font-bold text-base text-slate-900">Desk Checkout / Issue</h3>
+                  <p class="text-xs text-slate-400">Issue library item to registered student</p>
+                </div>
+              </div>
+            </div>
+
+            <form id="quick-issue-form" onsubmit="handleQuickIssue(event)" class="mt-5 space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Select Student Member</label>
+                <select id="issue-student-select" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-800 focus:outline-none focus:border-brand-500">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Select Book Title (Available Stock)</label>
+                <select id="issue-book-select" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-800 focus:outline-none focus:border-brand-500">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Loan Period</label>
+                  <select id="issue-period-days" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-800 focus:outline-none focus:border-brand-500">
+                    <option value="7">7 Days (Standard)</option>
+                    <option value="14" selected>14 Days (Extended)</option>
+                    <option value="21">21 Days (Exam Prep)</option>
+                    <option value="1">1 Day (Reference only)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Condition</label>
+                  <select id="issue-condition" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-800 focus:outline-none focus:border-brand-500">
+                    <option value="Good">Good / Like New</option>
+                    <option value="Fair">Fair (Minor Wear)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" class="w-full mt-2 py-3 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-brand-500/20 transition flex items-center justify-center gap-2">
+                <i data-lucide="check-circle-2" class="w-4 h-4"></i> Complete Book Issue
+              </button>
+            </form>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
+            <span>System rate: ₹5.00/day fine after due date</span>
+            <span class="text-brand-600 font-medium">Barcode auto-logged</span>
+          </div>
+        </div>
+
+        <!-- Overdue Defaulters & Reminder Desk -->
+        <div class="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+              <h3 class="font-heading font-bold text-base text-slate-900 flex items-center gap-2">
+                <span>Active Loans & Returns Desk</span>
+                <span id="active-loan-counter-pill" class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">0</span>
+              </h3>
+              <p class="text-xs text-slate-400">Process returned items and calculate penalty fines</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="renderAdminLoansList()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" title="Refresh">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Loans Table -->
+          <div class="mt-4 overflow-x-auto max-h-[340px] overflow-y-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-[11px] font-semibold text-slate-400 uppercase bg-slate-50 sticky top-0">
+                <tr>
+                  <th class="py-2.5 px-3">Student</th>
+                  <th class="py-2.5 px-3">Book</th>
+                  <th class="py-2.5 px-3">Due Date</th>
+                  <th class="py-2.5 px-3">Status / Fine</th>
+                  <th class="py-2.5 px-3 text-right">Desk Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-active-loans-tbody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quick Action Floating/Sub Bar -->
+      <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-brand-600 text-white rounded-xl">
+            <i data-lucide="bell-ring" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <span class="font-bold text-slate-900">Automated Library SMS / Email Reminders</span>
+            <p class="text-slate-500 text-[11px]">Dispatch 1-click reminders to parents and students for all overdue titles.</p>
+          </div>
+        </div>
+        <button onclick="sendBulkOverdueReminders()" class="px-4 py-2 bg-slate-900 hover:bg-black text-white font-medium rounded-xl transition flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="send" class="w-3.5 h-3.5 text-accent-400"></i> Dispatch Overdue Reminders
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ================= VIEW 6: INVENTORY MANAGEMENT (ADMIN) ================= -->
+    <section id="view-admin-inventory" class="tab-view hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="font-heading font-bold text-lg text-slate-900">Book Inventory Master</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Manage stock count, rack shelves, ISBNs, and catalog titles.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="openAddBookModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+              <i data-lucide="plus" class="w-4 h-4"></i> Add New Book Title
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="text-[11px] font-semibold text-slate-400 uppercase bg-slate-50">
+              <tr>
+                <th class="py-3 px-3">Book Info</th>
+                <th class="py-3 px-3">Subject / Category</th>
+                <th class="py-3 px-3">Shelf Location</th>
+                <th class="py-3 px-3">Total Copies</th>
+                <th class="py-3 px-3">Available</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body" class="divide-y divide-slate-100">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 7: STUDENTS DIRECTORY (ADMIN) ================= -->
+    <section id="view-admin-students" class="tab-view hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="font-heading font-bold text-lg text-slate-900">Registered Students Directory</h3>
+            <p class="text-xs text-slate-500 mt-0.5">View member loan limits, overdue fines, and card statuses.</p>
+          </div>
+          <div class="text-xs text-slate-500">
+            Total Enrolled: <strong id="student-enrolled-count" class="text-slate-800">4 Students</strong>
+          </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="text-[11px] font-semibold text-slate-400 uppercase bg-slate-50">
+              <tr>
+                <th class="py-3 px-3">Student Name</th>
+                <th class="py-3 px-3">Roll Number</th>
+                <th class="py-3 px-3">Class & Section</th>
+                <th class="py-3 px-3">Active Books</th>
+                <th class="py-3 px-3">Dues</th>
+                <th class="py-3 px-3">Library Clearance</th>
+                <th class="py-3 px-3 text-right">Quick Switch</th>
+              </tr>
+            </thead>
+            <tbody id="students-directory-tbody" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL: ADD / EDIT BOOK ================= -->
+  <div id="book-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 id="book-modal-title" class="font-heading font-bold text-lg text-slate-900">Add New Book</h3>
+        <button onclick="closeBookModal()" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="book-form" onsubmit="handleBookSubmit(event)" class="mt-4 space-y-3.5 text-xs">
+        <input type="hidden" id="book-form-id" />
+        
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Book Title *</label>
+          <input type="text" id="book-form-title" required placeholder="e.g. Concepts of Physics - Vol 1" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 font-medium" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Author / Writer *</label>
+            <input type="text" id="book-form-author" required placeholder="e.g. Dr. H.C. Verma" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 font-medium" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Category *</label>
+            <select id="book-form-category" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+              <option value="Science">Science</option>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Literature">Literature</option>
+              <option value="History">History</option>
+              <option value="Biography">Biography</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">ISBN Code *</label>
+            <input type="text" id="book-form-isbn" required placeholder="e.g. 978-81-7709-187-8" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 font-medium" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Physical Shelf Location *</label>
+            <input type="text" id="book-form-shelf" required placeholder="e.g. Shelf B-2, Rack 3" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 font-medium" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Total Copies *</label>
+            <input type="number" id="book-form-copies" min="1" max="100" required value="5" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 font-medium" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Cover Image URL (Optional)</label>
+            <input type="url" id="book-form-cover" placeholder="https://..." class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 font-medium" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Book Synopsis / Description</label>
+          <textarea id="book-form-desc" rows="3" placeholder="Brief outline of contents, target grade level, curriculum..." class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 font-medium"></textarea>
+        </div>
+
+        <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeBookModal()" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-medium">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold shadow-sm transition">Save Book</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: BOOK DETAILS VIEW (STUDENT & ADMIN) ================= -->
+  <div id="book-detail-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto relative">
+      <button onclick="closeBookDetailModal()" class="absolute top-5 right-5 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div id="book-detail-body">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: QUICK ROLE / USER LOGIN SWITCHER ================= -->
+  <div id="login-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-center">
+      <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 mx-auto flex items-center justify-center mb-3">
+        <i data-lucide="users" class="w-6 h-6"></i>
+      </div>
+      <h3 class="font-heading font-bold text-xl text-slate-900">Switch Role or Account</h3>
+      <p class="text-xs text-slate-500 mt-1">Select a demo profile to test different permissions and portals.</p>
+
+      <div class="mt-6 space-y-3">
+        <!-- Student Options -->
+        <div class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Student Logins</div>
+        
+        <button onclick="loginAs('STU-101')" class="w-full p-3 rounded-2xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-left group">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-brand-700 flex items-center justify-center font-bold text-xs">AS</div>
+            <div>
+              <p class="text-xs font-bold text-slate-800 group-hover:text-brand-600">Aarav Sharma</p>
+              <p class="text-[11px] text-slate-400">Class 11-A &bull; Roll #1024</p>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-brand-600 group-hover:translate-x-1 transition">&rarr;</span>
+        </button>
+
+        <button onclick="loginAs('STU-102')" class="w-full p-3 rounded-2xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-left group">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">PK</div>
+            <div>
+              <p class="text-xs font-bold text-slate-800 group-hover:text-brand-600">Priya Kulkarni</p>
+              <p class="text-[11px] text-slate-400">Class 10-B &bull; Roll #2045</p>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-brand-600 group-hover:translate-x-1 transition">&rarr;</span>
+        </button>
+
+        <!-- Admin Options -->
+        <div class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider pt-2">Library Administration</div>
+        
+        <button onclick="loginAs('ADMIN-1')" class="w-full p-3 rounded-2xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition flex items-center justify-between text-left group">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">SV</div>
+            <div>
+              <p class="text-xs font-bold text-slate-800 group-hover:text-brand-600">Mrs. Sunita Verma</p>
+              <p class="text-[11px] text-slate-400">Chief Librarian &bull; Staff ID #LIB-01</p>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-brand-600 group-hover:translate-x-1 transition">&rarr;</span>
+        </button>
+      </div>
+
+      <button onclick="closeLoginModal()" class="w-full mt-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800">
+        Dismiss
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="mt-auto border-t border-slate-200 bg-white py-6 text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="book-open" class="w-4 h-4 text-brand-600"></i>
+        <span>LibriTrack School Library Management Portal &copy; 2026. Made for School Project.</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="inline-flex items-center gap-1.5 text-emerald-600 font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> DB LocalSync Active
+        </span>
+        <button onclick="resetToSampleData()" class="hover:text-brand-600 underline">Reset Database</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================= LOGIC & DATA SCRIPTS ================= -->
+  <script>
+    /* -------------------------------------------------------------
+       INITIAL SAMPLE DATASET
+       Realistic CBSE / High School Library Textbooks and Literature
+       ------------------------------------------------------------- */
+    const INITIAL_BOOKS = [
+      {
+        id: "BK-1001",
+        title: "Concepts of Physics (Part 1)",
+        author: "Dr. H.C. Verma",
+        category: "Science",
+        isbn: "978-81-7709-187-8",
+        shelf: "Shelf S-1, Rack 04",
+        totalCopies: 8,
+        availableCopies: 5,
+        rating: 4.9,
+        cover: "https://placehold.co/400x550/1e293b/ffffff?text=H.C.+Verma+Physics",
+        description: "The gold-standard reference manual for high school kinematics, mechanics, wave optics, and foundational thermodynamics for class 11-12 students."
+      },
+      {
+        id: "BK-1002",
+        title: "Mathematics for Class 11",
+        author: "Dr. R.D. Sharma",
+        category: "Mathematics",
+        isbn: "978-93-8318-204-6",
+        shelf: "Shelf M-3, Rack 01",
+        totalCopies: 6,
+        availableCopies: 2,
+        rating: 4.7,
+        cover: "https://placehold.co/400x550/0f172a/ffffff?text=R.D.+Sharma+Maths",
+        description: "Comprehensive problem sets, step-by-step calculus proofs, coordinate geometry, and permutation theorems for competitive preparation."
+      },
+      {
+        id: "BK-1003",
+        title: "Python Crash Course: Hands-on Project Guide",
+        author: "Eric Matthes",
+        category: "Computer Science",
+        isbn: "978-15-9327-928-8",
+        shelf: "Shelf CS-2, Rack 02",
+        totalCopies: 5,
+        availableCopies: 4,
+        rating: 4.8,
+        cover: "https://placehold.co/400x550/1e3a8a/ffffff?text=Python+Crash+Course",
+        description: "A fast-paced, thorough introduction to programming with Python, covering clean syntax, data structures, matplotlib charts, and simple web games."
+      },
+      {
+        id: "BK-1004",
+        title: "Wings of Fire: An Autobiography",
+        author: "Dr. A.P.J. Abdul Kalam",
+        category: "Biography",
+        isbn: "978-81-7371-146-6",
+        shelf: "Shelf B-1, Rack 05",
+        totalCopies: 4,
+        availableCopies: 1,
+        rating: 5.0,
+        cover: "https://placehold.co/400x550/312e81/ffffff?text=Wings+of+Fire",
+        description: "Inspirational memoir of former President Dr. Kalam detailing his childhood in Rameswaram, aerospace trials, and SLV-3 rocket development."
+      },
+      {
+        id: "BK-1005",
+        title: "To Kill a Mockingbird",
+        author: "Harper Lee",
+        category: "Literature",
+        isbn: "978-00-6112-008-4",
+        shelf: "Shelf L-4, Rack 03",
+        totalCopies: 4,
+        availableCopies: 3,
+        rating: 4.8,
+        cover: "https://placehold.co/400x550/111827/ffffff?text=To+Kill+a+Mockingbird",
+        description: "Pulitzer prize-winning masterpiece portraying compassion, race, and justice in a small southern town seen through the eyes of young Scout Finch."
+      },
+      {
+        id: "BK-1006",
+        title: "India: An Illustrated History",
+        author: "John Keay",
+        category: "History",
+        isbn: "978-08-0213-797-5",
+        shelf: "Shelf H-2, Rack 02",
+        totalCopies: 3,
+        availableCopies: 3,
+        rating: 4.6,
+        cover: "https://placehold.co/400x550/334155/ffffff?text=Indian+History",
+        description: "A panoramic chronicle of the Indian subcontinent from the Harappan civilization to the Indus valley and the formation of the modern republic."
+      },
+      {
+        id: "BK-1007",
+        title: "Harry Potter and the Philosopher's Stone",
+        author: "J.K. Rowling",
+        category: "Literature",
+        isbn: "978-07-4753-274-3",
+        shelf: "Shelf F-1, Rack 06",
+        totalCopies: 7,
+        availableCopies: 4,
+        rating: 4.9,
+        cover: "https://placehold.co/400x550/4338ca/ffffff?text=Harry+Potter+Book+1",
+        description: "The world-famous fantasy classic chronicling Harry Potter's journey into Hogwarts School of Witchcraft and Wizardry."
+      },
+      {
+        id: "BK-1008",
+        title: "New Simplified Physics (Class 12)",
+        author: "S.L. Arora",
+        category: "Science",
+        isbn: "978-81-8999-312-1",
+        shelf: "Shelf S-2, Rack 01",
+        totalCopies: 5,
+        availableCopies: 0,
+        rating: 4.7,
+        cover: "https://placehold.co/400x550/18181b/ffffff?text=S.L.+Arora+Physics",
+        description: "In-depth electromagnetic waves, semiconductors, ray optics numericals and conceptual questions for board examination mastery."
+      }
+    ];
+
+    const INITIAL_STUDENTS = [
+      {
+        id: "STU-101",
+        name: "Aarav Sharma",
+        rollNumber: "DPS-2024-1024",
+        grade: "Grade 11 - Science (Sec A)",
+        email: "aarav.sharma@dps-school.edu",
+        initials: "AS",
+        status: "Active"
+      },
+      {
+        id: "STU-102",
+        name: "Priya Kulkarni",
+        rollNumber: "DPS-2024-2045",
+        grade: "Grade 10 - Standard (Sec B)",
+        email: "priya.k@dps-school.edu",
+        initials: "PK",
+        status: "Active"
+      },
+      {
+        id: "STU-103",
+        name: "Rohan Varma",
+        rollNumber: "DPS-2024-1088",
+        grade: "Grade 12 - Commerce (Sec A)",
+        email: "rohan.v@dps-school.edu",
+        initials: "RV",
+        status: "Active"
+      },
+      {
+        id: "STU-104",
+        name: "Ananya Iyer",
+        rollNumber: "DPS-2024-3312",
+        grade: "Grade 9 - Humanities (Sec C)",
+        email: "ananya.i@dps-school.edu",
+        initials: "AI",
+        status: "Active"
+      }
+    ];
+
+    // Dates for demo: some current, some overdue (simulating past due date)
+    const today = new Date();
+    const getDateString = (offsetDays) => {
+      const d = new Date();
+      d.setDate(today.getDate() + offsetDays);
+      return d.toISOString().split('T')[0];
+    };
+
+    const INITIAL_LOANS = [
+      {
+        id: "LN-501",
+        bookId: "BK-1008",
+        studentId: "STU-101",
+        issueDate: getDateString(-20),
+        dueDate: getDateString(-6), // 6 days overdue!
+        returnDate: null,
+        condition: "Good"
+      },
+      {
+        id: "LN-502",
+        bookId: "BK-1002",
+        studentId: "STU-101",
+        issueDate: getDateString(-5),
+        dueDate: getDateString(9), // Active safe
+        returnDate: null,
+        condition: "Good"
+      },
+      {
+        id: "LN-503",
+        bookId: "BK-1004",
+        studentId: "STU-102",
+        issueDate: getDateString(-16),
+        dueDate: getDateString(-2), // 2 days overdue
+        returnDate: null,
+        condition: "Good"
+      },
+      {
+        id: "LN-504",
+        bookId: "BK-1001",
+        studentId: "STU-103",
+        issueDate: getDateString(-3),
+        dueDate: getDateString(11),
+        returnDate: null,
+        condition: "Good"
+      },
+      // Past returned book for student history
+      {
+        id: "LN-490",
+        bookId: "BK-1005",
+        studentId: "STU-101",
+        issueDate: getDateString(-45),
+        dueDate: getDateString(-31),
+        returnDate: getDateString(-32), // Returned on time
+        condition: "Good"
+      }
+    ];
+
+    /* -------------------------------------------------------------
+       STATE MANAGEMENT WITH LOCALSTORAGE FALLBACK
+       ------------------------------------------------------------- */
+    let books = JSON.parse(localStorage.getItem('libritrack_books')) || INITIAL_BOOKS;
+    let students = JSON.parse(localStorage.getItem('libritrack_students')) || INITIAL_STUDENTS;
+    let loans = JSON.parse(localStorage.getItem('libritrack_loans')) || INITIAL_LOANS;
+    let currentRole = localStorage.getItem('libritrack_role') || 'student'; // 'student' or 'admin'
+    let currentUserId = localStorage.getItem('libritrack_user') || 'STU-101';
+    let activeCategoryFilter = 'All';
+
+    function saveData() {
+      localStorage.setItem('libritrack_books', JSON.stringify(books));
+      localStorage.setItem('libritrack_students', JSON.stringify(students));
+      localStorage.setItem('libritrack_loans', JSON.stringify(loans));
+      localStorage.setItem('libritrack_role', currentRole);
+      localStorage.setItem('libritrack_user', currentUserId);
+    }
+
+    function resetToSampleData() {
+      localStorage.removeItem('libritrack_books');
+      localStorage.removeItem('libritrack_students');
+      localStorage.removeItem('libritrack_loans');
+      books = [...INITIAL_BOOKS];
+      students = [...INITIAL_STUDENTS];
+      loans = [...INITIAL_LOANS];
+      currentRole = 'student';
+      currentUserId = 'STU-101';
+      saveData();
+      showToast('Database reset to fresh sample catalog & loans!', 'info');
+      initApp();
+    }
+
+    /* -------------------------------------------------------------
+       TOAST NOTIFICATIONS
+       ------------------------------------------------------------- */
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        error: 'bg-rose-600 text-white',
+        info: 'bg-slate-900 text-white',
+        warning: 'bg-amber-600 text-white'
+      };
+
+      const icons = {
+        success: 'check-circle',
+        error: 'alert-triangle',
+        info: 'info',
+        warning: 'bell'
+      };
+
+      toast.className = `${colors[type] || colors.info} px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold transform transition-all duration-300 translate-y-3 pointer-events-auto`;
+      toast.innerHTML = `
+        <i data-lucide="${icons[type] || 'info'}" class="w-4 h-4 flex-shrink-0"></i>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      // Trigger enter animation
+      setTimeout(() => toast.classList.remove('translate-y-3'), 10);
+
+      // Auto dismiss
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    /* -------------------------------------------------------------
+       AUTHENTICATION & ROLE TOGGLE
+       ------------------------------------------------------------- */
+    function switchRole(newRole) {
+      currentRole = newRole;
+      if (newRole === 'admin') {
+        currentUserId = 'ADMIN-1';
+      } else {
+        // default back to first student if currently on admin
+        if (!currentUserId.startsWith('STU')) {
+          currentUserId = 'STU-101';
+        }
+      }
+      saveData();
+      updateAuthUI();
+      // Navigate to default view for role
+      navigateTo(currentRole === 'admin' ? 'admin-dashboard' : 'catalog');
+      showToast(`Switched view to ${currentRole === 'admin' ? 'Librarian (Admin)' : 'Student'} mode`, 'info');
+    }
+
+    function loginAs(userId) {
+      currentUserId = userId;
+      if (userId.startsWith('ADMIN')) {
+        currentRole = 'admin';
+      } else {
+        currentRole = 'student';
+      }
+      saveData();
+      updateAuthUI();
+      closeLoginModal();
+      navigateTo(currentRole === 'admin' ? 'admin-dashboard' : 'catalog');
+      showToast(`Logged in as ${getUserDisplayName(userId)}`, 'success');
+    }
+
+    function getUserDisplayName(id) {
+      if (id === 'ADMIN-1') return 'Mrs. Sunita Verma';
+      const s = students.find(item => item.id === id);
+      return s ? s.name : 'User';
+    }
+
+    function updateAuthUI() {
+      const studentPill = document.getElementById('role-pill-student');
+      const adminPill = document.getElementById('role-pill-admin');
+      const avatarEl = document.getElementById('user-avatar-container');
+      const nameEl = document.getElementById('current-user-name');
+      const descEl = document.getElementById('current-user-role-desc');
+      const addBookBtn = document.getElementById('admin-add-book-btn');
+
+      if (currentRole === 'student') {
+        studentPill.className = 'px-3 py-1.5 rounded-lg font-bold bg-white text-brand-700 shadow-sm flex items-center gap-1.5 transition';
+        adminPill.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5';
+        addBookBtn.classList.add('hidden');
+        addBookBtn.classList.remove('inline-flex');
+
+        const curStudent = students.find(s => s.id === currentUserId) || students[0];
+        avatarEl.textContent = curStudent.initials;
+        avatarEl.className = 'w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-xs flex items-center justify-center shadow-inner';
+        nameEl.textContent = curStudent.name;
+        descEl.textContent = `${curStudent.grade.split('-')[0]} (Roll #${curStudent.rollNumber.split('-')[2]})`;
+      } else {
+        adminPill.className = 'px-3 py-1.5 rounded-lg font-bold bg-brand-600 text-white shadow-sm flex items-center gap-1.5 transition';
+        studentPill.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5';
+        addBookBtn.classList.remove('hidden');
+        addBookBtn.classList.add('inline-flex');
+
+        avatarEl.textContent = "SV";
+        avatarEl.className = 'w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-rose-600 text-white font-bold text-xs flex items-center justify-center shadow-inner';
+        nameEl.textContent = "Mrs. Sunita Verma";
+        descEl.textContent = "Chief Librarian (Admin)";
+      }
+
+      renderNavigationTabs();
+    }
+
+    /* -------------------------------------------------------------
+       NAVIGATION TABS
+       ------------------------------------------------------------- */
+    const STUDENT_TABS = [
+      { id: 'catalog', label: 'Book Discovery', icon: 'compass' },
+      { id: 'student-loans', label: 'My Borrowed Books', icon: 'book-open' },
+      { id: 'student-idcard', label: 'Digital Library Card', icon: 'credit-card' },
+      { id: 'student-history', label: 'Reading History', icon: 'history' }
+    ];
+
+    const ADMIN_TABS = [
+      { id: 'admin-dashboard', label: 'Dashboard & Issue Desk', icon: 'layout-dashboard' },
+      { id: 'catalog', label: 'Library Catalog', icon: 'book' },
+      { id: 'admin-inventory', label: 'Inventory Master', icon: 'database' },
+      { id: 'admin-students', label: 'Students Directory', icon: 'users-round' }
+    ];
+
+    let activeTab = 'catalog';
+
+    function renderNavigationTabs() {
+      const container = document.getElementById('main-nav-tabs');
+      const tabs = currentRole === 'student' ? STUDENT_TABS : ADMIN_TABS;
+
+      container.innerHTML = tabs.map(tab => {
+        const isActive = activeTab === tab.id;
+        const activeClasses = isActive 
+          ? 'text-brand-600 border-b-2 border-brand-600 font-bold bg-brand-50/30' 
+          : 'text-slate-500 hover:text-slate-800 border-b-2 border-transparent';
+
+        return `
+          <button onclick="navigateTo('${tab.id}')" class="px-4 py-2.5 flex items-center gap-2 whitespace-nowrap text-xs transition duration-150 rounded-t-lg ${activeClasses}">
+            <i data-lucide="${tab.icon}" class="w-4 h-4"></i>
+            <span>${tab.label}</span>
+          </button>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function navigateTo(tabId) {
+      activeTab = tabId;
+      // Hide all views
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+
+      // Show selected view
+      const targetView = document.getElementById(`view-${tabId}`);
+      if (targetView) {
+        targetView.classList.remove('hidden');
+      }
+
+      renderNavigationTabs();
+
+      // Trigger view-specific renders
+      if (tabId === 'catalog') {
+        renderCatalog();
+      } else if (tabId === 'student-loans') {
+        renderStudentLoans();
+      } else if (tabId === 'student-idcard') {
+        renderStudentIdCard();
+      } else if (tabId === 'student-history') {
+        renderStudentHistory();
+      } else if (tabId === 'admin-dashboard') {
+        renderAdminDashboard();
+      } else if (tabId === 'admin-inventory') {
+        renderInventoryTable();
+      } else if (tabId === 'admin-students') {
+        renderStudentsDirectory();
+      }
+    }
+
+    /* -------------------------------------------------------------
+       DATE & OVERDUE FINE CALCULATOR (₹5 / Day)
+       ------------------------------------------------------------- */
+    const DAILY_FINE_RATE = 5;
+
+    function calculateLoanFine(dueDateStr, returnDateStr = null) {
+      const due = new Date(dueDateStr);
+      const comparisonDate = returnDateStr ? new Date(returnDateStr) : new Date();
+      // Zero-out hours for clean day diff
+      due.setHours(0,0,0,0);
+      comparisonDate.setHours(0,0,0,0);
+
+      const diffTime = comparisonDate - due;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays > 0) {
+        return {
+          isOverdue: true,
+          overdueDays: diffDays,
+          fine: diffDays * DAILY_FINE_RATE
+        };
+      }
+      return {
+        isOverdue: false,
+        overdueDays: 0,
+        fine: 0
+      };
+    }
+
+    /* -------------------------------------------------------------
+       BOOK CATALOG MODULE
+       ------------------------------------------------------------- */
+    const CATEGORIES = ["All", "Science", "Mathematics", "Computer Science", "Literature", "History", "Biography"];
+
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isSelected = activeCategoryFilter === cat;
+        return `
+          <button onclick="setCategoryFilter('${cat}')" class="px-3.5 py-1.5 rounded-full border transition whitespace-nowrap ${
+            isSelected 
+              ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+          }">
+            ${cat}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function setCategoryFilter(cat) {
+      activeCategoryFilter = cat;
+      document.getElementById('catalog-category-filter').value = cat;
+      renderCategoryPills();
+      renderCatalog();
+    }
+
+    function handleCatalogFilter() {
+      const catVal = document.getElementById('catalog-category-filter').value;
+      activeCategoryFilter = catVal;
+      renderCategoryPills();
+      renderCatalog();
+    }
+
+    function clearCatalogFilters() {
+      document.getElementById('catalog-search').value = '';
+      document.getElementById('catalog-category-filter').value = 'All';
+      document.getElementById('catalog-availability-filter').value = 'all';
+      activeCategoryFilter = 'All';
+      renderCategoryPills();
+      renderCatalog();
+    }
+
+    function renderCatalog() {
+      renderCategoryPills();
+      const query = (document.getElementById('catalog-search').value || '').toLowerCase().trim();
+      const availability = document.getElementById('catalog-availability-filter').value;
+      const grid = document.getElementById('books-grid');
+      const emptyState = document.getElementById('catalog-empty-state');
+      const countEl = document.getElementById('catalog-count');
+
+      const filtered = books.filter(b => {
+        const matchesQuery = 
+          b.title.toLowerCase().includes(query) ||
+          b.author.toLowerCase().includes(query) ||
+          b.isbn.toLowerCase().includes(query) ||
+          b.shelf.toLowerCase().includes(query) ||
+          b.category.toLowerCase().includes(query);
+
+        const matchesCat = activeCategoryFilter === 'All' || b.category === activeCategoryFilter;
+
+        let matchesStock = true;
+        if (availability === 'available') matchesStock = b.availableCopies > 0;
+        if (availability === 'low') matchesStock = b.availableCopies > 0 && b.availableCopies <= 2;
+
+        return matchesQuery && matchesCat && matchesStock;
+      });
+
+      countEl.textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      grid.innerHTML = filtered.map(book => {
+        const isAvailable = book.availableCopies > 0;
+        // Check if current student already has this book borrowed
+        const isAlreadyBorrowed = loans.some(l => l.bookId === book.id && l.studentId === currentUserId && !l.returnDate);
+
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between overflow-hidden group">
+            <!-- Cover Top -->
+            <div class="relative bg-slate-100 h-48 overflow-hidden flex items-center justify-center p-4">
+              <img 
+                src="${book.cover}" 
+                alt="${book.title}" 
+                onerror="this.src='https://placehold.co/400x550/334155/ffffff?text=${encodeURIComponent(book.title)}'"
+                class="h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition duration-300"
+              />
+              <span class="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                isAvailable ? 'bg-emerald-500/90 text-white' : 'bg-rose-500/90 text-white'
+              }">
+                ${isAvailable ? `${book.availableCopies} in Rack` : 'Issued Out'}
+              </span>
+              <span class="absolute bottom-2 left-3 bg-slate-900/80 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-mono">
+                ${book.shelf}
+              </span>
+            </div>
+
+            <!-- Content -->
+            <div class="p-4 flex-1 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                  <span class="font-semibold text-brand-600">${book.category}</span>
+                  <span class="flex items-center gap-1 text-amber-500 font-bold">
+                    <i data-lucide="star" class="w-3 h-3 fill-amber-400"></i> ${book.rating}
+                  </span>
+                </div>
+                <h4 class="font-heading font-bold text-sm text-slate-900 leading-snug line-clamp-1" title="${book.title}">
+                  ${book.title}
+                </h4>
+                <p class="text-xs text-slate-500 mt-0.5">by ${book.author}</p>
+                <p class="text-[11px] text-slate-400 mt-2 line-clamp-2">${book.description}</p>
+              </div>
+
+              <!-- Action Bar -->
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <button onclick="viewBookDetails('${book.id}')" class="text-xs font-semibold text-slate-600 hover:text-brand-600 transition flex items-center gap-1">
+                  <i data-lucide="info" class="w-3.5 h-3.5"></i> Details
+                </button>
+
+                ${currentRole === 'student' ? `
+                  <button 
+                    onclick="handleStudentIssueRequest('${book.id}')" 
+                    ${!isAvailable || isAlreadyBorrowed ? 'disabled' : ''}
+                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
+                      isAlreadyBorrowed
+                        ? 'bg-amber-100 text-amber-800 cursor-not-allowed'
+                        : isAvailable 
+                          ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-sm' 
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    }">
+                    <i data-lucide="${isAlreadyBorrowed ? 'check-check' : 'bookmark-plus'}" class="w-3.5 h-3.5"></i>
+                    ${isAlreadyBorrowed ? 'Borrowed' : isAvailable ? 'Borrow Book' : 'Reserve'}
+                  </button>
+                ` : `
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="openEditBookModal('${book.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Edit Book">
+                      <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button onclick="deleteBook('${book.id}')" class="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50" title="Delete Book">
+                      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                `}
+              </div>
+
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    /* -------------------------------------------------------------
+       BOOK DETAIL MODAL
+       ------------------------------------------------------------- */
+    function viewBookDetails(bookId) {
+      const book = books.find(b => b.id === bookId);
+      if (!book) return;
+
+      const modalBody = document.getElementById('book-detail-body');
+      const isAvailable = book.availableCopies > 0;
+      const isAlreadyBorrowed = loans.some(l => l.bookId === book.id && l.studentId === currentUserId && !l.returnDate);
+
+      modalBody.innerHTML = `
+        <div class="flex flex-col sm:flex-row gap-5">
+          <div class="w-full sm:w-40 flex-shrink-0 bg-slate-100 rounded-2xl p-2 flex items-center justify-center">
+            <img src="${book.cover}" alt="${book.title}" class="max-h-56 object-cover rounded-xl shadow-md" />
+          </div>
+
+          <div class="flex-1 space-y-2.5">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-200">
+                ${book.category}
+              </span>
+              <span class="text-xs text-amber-500 font-bold flex items-center gap-1">
+                <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400"></i> ${book.rating} / 5.0
+              </span>
+            </div>
+
+            <h3 class="font-heading font-bold text-lg text-slate-900 leading-snug">${book.title}</h3>
+            <p class="text-xs font-medium text-slate-500">Written by <span class="text-slate-800 font-semibold">${book.author}</span></p>
+
+            <div class="grid grid-cols-2 gap-2 pt-2 text-xs">
+              <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <span class="text-slate-400 text-[10px] block">Shelf Location</span>
+                <span class="font-mono font-semibold text-slate-800">${book.shelf}</span>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <span class="text-slate-400 text-[10px] block">Availability</span>
+                <span class="font-semibold ${isAvailable ? 'text-emerald-600' : 'text-rose-600'}">
+                  ${book.availableCopies} of ${book.totalCopies} Copies Free
+                </span>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100 col-span-2">
+                <span class="text-slate-400 text-[10px] block">ISBN Identification</span>
+                <span class="font-mono text-slate-700">${book.isbn}</span>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed pt-1">${book.description}</p>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button onclick="closeBookDetailModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100">
+            Close
+          </button>
+          ${currentRole === 'student' ? `
+            <button 
+              onclick="handleStudentIssueRequest('${book.id}'); closeBookDetailModal();"
+              ${!isAvailable || isAlreadyBorrowed ? 'disabled' : ''}
+              class="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md transition flex items-center gap-1.5 ${
+                isAlreadyBorrowed 
+                  ? 'bg-amber-600 cursor-not-allowed' 
+                  : isAvailable 
+                    ? 'bg-brand-600 hover:bg-brand-700 shadow-brand-500/20' 
+                    : 'bg-slate-300 cursor-not-allowed'
+              }">
+              <i data-lucide="book-open" class="w-4 h-4"></i>
+              ${isAlreadyBorrowed ? 'Already Borrowed' : isAvailable ? 'Issue Book to My Account' : 'Out of Stock'}
+            </button>
+          ` : `
+            <button onclick="openEditBookModal('${book.id}'); closeBookDetailModal();" class="px-5 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl">
+              Edit Book Details
+            </button>
+          `}
+        </div>
+      `;
+
+      document.getElementById('book-detail-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeBookDetailModal() {
+      document.getElementById('book-detail-modal').classList.add('hidden');
+    }
+
+    /* -------------------------------------------------------------
+       STUDENT ACTIONS: DIRECT BORROW / RESERVE
+       ------------------------------------------------------------- */
+    function handleStudentIssueRequest(bookId) {
+      const book = books.find(b => b.id === bookId);
+      if (!book) return;
+
+      if (book.availableCopies <= 0) {
+        showToast('Sorry! All physical copies are currently checked out.', 'error');
+        return;
+      }
+
+      // Check max borrow limit (3 books max)
+      const currentActiveCount = loans.filter(l => l.studentId === currentUserId && !l.returnDate).length;
+      if (currentActiveCount >= 3) {
+        showToast('Borrow limit reached! Max 3 books allowed per student card.', 'warning');
+        return;
+      }
+
+      // Deduct copy
+      book.availableCopies -= 1;
+
+      // Create new loan
+      const newLoan = {
+        id: `LN-${Date.now().toString().slice(-4)}`,
+        bookId: book.id,
+        studentId: currentUserId,
+        issueDate: getDateString(0),
+        dueDate: getDateString(14), // 14 days standard period
+        returnDate: null,
+        condition: "Good"
+      };
+
+      loans.unshift(newLoan);
+      saveData();
+      renderCatalog();
+      showToast(`Success! "${book.title}" has been issued to your card for 14 days.`, 'success');
+    }
+
+    /* -------------------------------------------------------------
+       STUDENT: MY BORROWED BOOKS VIEW
+       ------------------------------------------------------------- */
+    function renderStudentLoans() {
+      const listEl = document.getElementById('student-loan-list');
+      const emptyEl = document.getElementById('student-no-loans');
+      const fineBadge = document.getElementById('student-total-fine-badge');
+
+      const myActiveLoans = loans.filter(l => l.studentId === currentUserId && !l.returnDate);
+
+      let totalFineSum = 0;
+
+      if (myActiveLoans.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        fineBadge.textContent = '₹0';
+        return;
+      }
+
+      emptyEl.classList.add('hidden');
+
+      listEl.innerHTML = myActiveLoans.map(loan => {
+        const book = books.find(b => b.id === loan.bookId) || {
+          title: "Unknown Book",
+          author: "Unknown Author",
+          shelf: "N/A",
+          cover: ""
+        };
+
+        const fineInfo = calculateLoanFine(loan.dueDate);
+        totalFineSum += fineInfo.fine;
+
+        return `
+          <div class="p-4 sm:p-5 rounded-2xl border ${
+            fineInfo.isOverdue ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200 bg-white'
+          } shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-4">
+              <img src="${book.cover}" alt="${book.title}" class="w-14 h-20 object-cover rounded-xl shadow-sm flex-shrink-0" />
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-bold">
+                    Loan #${loan.id}
+                  </span>
+                  ${fineInfo.isOverdue ? `
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 animate-pulse flex items-center gap-1">
+                      <i data-lucide="alert-octagon" class="w-3 h-3"></i> OVERDUE (${fineInfo.overdueDays} Days)
+                    </span>
+                  ` : `
+                    <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      Active Loan
+                    </span>
+                  `}
+                </div>
+                <h4 class="font-heading font-bold text-sm text-slate-900">${book.title}</h4>
+                <p class="text-xs text-slate-500">by ${book.author} &bull; <span class="font-mono text-slate-400">${book.shelf}</span></p>
+
+                <div class="mt-2 flex flex-wrap items-center gap-4 text-xs">
+                  <span class="text-slate-500">Issued: <strong class="text-slate-700">${loan.issueDate}</strong></span>
+                  <span class="text-slate-500">Due: <strong class="${fineInfo.isOverdue ? 'text-rose-600 font-bold' : 'text-slate-700'}">${loan.dueDate}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:items-end w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-0 border-slate-200">
+              ${fineInfo.isOverdue ? `
+                <div class="text-right mb-2">
+                  <span class="text-[11px] text-slate-400 block">Accrued Fine</span>
+                  <span class="text-base font-bold text-rose-600">₹${fineInfo.fine}</span>
+                </div>
+              ` : `
+                <div class="text-right mb-2 text-xs text-emerald-600 font-medium">
+                  No Overdue Fines
+                </div>
+              `}
+              <button onclick="simulateBookReturn('${loan.id}')" class="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 w-full sm:w-auto">
+                <i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i> Request Return Desk
+              </button>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      fineBadge.textContent = `₹${totalFineSum}`;
+      lucide.createIcons();
+    }
+
+    /* -------------------------------------------------------------
+       STUDENT: DIGITAL ID CARD
+       ------------------------------------------------------------- */
+    function renderStudentIdCard() {
+      const curStudent = students.find(s => s.id === currentUserId) || students[0];
+      
+      document.getElementById('card-student-name').textContent = curStudent.name;
+      document.getElementById('card-student-roll').textContent = curStudent.rollNumber;
+      document.getElementById('card-student-grade').textContent = curStudent.grade;
+      document.getElementById('card-barcode-text').textContent = `*${curStudent.rollNumber}*`;
+
+      // Render faux barcode vertical stripes
+      const barcodeBox = document.getElementById('barcode-visual');
+      const stripePattern = [3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 3, 1, 2, 4, 1, 3, 2, 4, 1, 3, 2, 1, 4, 3, 1, 2];
+      barcodeBox.innerHTML = stripePattern.map(w => `<span class="barcode-line" style="width: ${w}px;"></span>`).join('');
+    }
+
+    /* -------------------------------------------------------------
+       STUDENT: READING HISTORY
+       ------------------------------------------------------------- */
+    function renderStudentHistory() {
+      const tbody = document.getElementById('student-history-table');
+      const historyCountEl = document.getElementById('history-count');
+
+      const pastLoans = loans.filter(l => l.studentId === currentUserId && l.returnDate);
+      historyCountEl.textContent = `${pastLoans.length} books`;
+
+      if (pastLoans.length === 0) {
+        tbody.innerHTML = `
+          <div class="text-center py-8 text-slate-400 text-xs">
+            No completed reading history yet. Returned books will appear here automatically.
+          </div>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = `
+        <table class="w-full text-left text-xs">
+          <thead class="text-[11px] font-semibold text-slate-400 uppercase bg-slate-50">
+            <tr>
+              <th class="py-2.5 px-3">Title & Author</th>
+              <th class="py-2.5 px-3">Borrowed Date</th>
+              <th class="py-2.5 px-3">Returned Date</th>
+              <th class="py-2.5 px-3">Condition Handed</th>
+              <th class="py-2.5 px-3">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 font-medium">
+            ${pastLoans.map(loan => {
+              const book = books.find(b => b.id === loan.bookId) || { title: "Archived Title", author: "-" };
+              return `
+                <tr>
+                  <td class="py-3 px-3">
+                    <span class="font-bold text-slate-800">${book.title}</span>
+                    <span class="block text-[11px] text-slate-400">${book.author}</span>
+                  </td>
+                  <td class="py-3 px-3 text-slate-600">${loan.issueDate}</td>
+                  <td class="py-3 px-3 text-emerald-600 font-semibold">${loan.returnDate}</td>
+                  <td class="py-3 px-3 text-slate-500">${loan.condition || 'Good'}</td>
+                  <td class="py-3 px-3">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-bold">Returned</span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    /* -------------------------------------------------------------
+       ADMIN: DASHBOARD & CIRCULATION DESK
+       ------------------------------------------------------------- */
+    function renderAdminDashboard() {
+      // 1. KPI Stats
+      const totalTitles = books.length;
+      const totalCopies = books.reduce((acc, b) => acc + (b.totalCopies || 0), 0);
+      const activeIssued = loans.filter(l => !l.returnDate);
+      
+      let overdueCount = 0;
+      let pendingFinesSum = 0;
+
+      activeIssued.forEach(l => {
+        const f = calculateLoanFine(l.dueDate);
+        if (f.isOverdue) {
+          overdueCount++;
+          pendingFinesSum += f.fine;
+        }
+      });
+
+      document.getElementById('stat-total-titles').textContent = totalTitles;
+      document.getElementById('stat-total-copies').textContent = totalCopies;
+      document.getElementById('stat-issued-books').textContent = activeIssued.length;
+      document.getElementById('stat-overdue-books').textContent = overdueCount;
+      document.getElementById('stat-total-students').textContent = students.length;
+      document.getElementById('stat-pending-fines').textContent = `₹${pendingFinesSum}`;
+
+      // 2. Populate Dropdowns in Quick Issue Desk
+      populateQuickIssueDropdowns();
+
+      // 3. Render Active Loans List
+      renderAdminLoansList();
+    }
+
+    function populateQuickIssueDropdowns() {
+      const studentSelect = document.getElementById('issue-student-select');
+      const bookSelect = document.getElementById('issue-book-select');
+
+      studentSelect.innerHTML = students.map(s => `
+        <option value="${s.id}">${s.name} (${s.rollNumber} - ${s.grade.split('-')[0]})</option>
+      `).join('');
+
+      const availableBooks = books.filter(b => b.availableCopies > 0);
+      if (availableBooks.length === 0) {
+        bookSelect.innerHTML = `<option disabled selected>No books available currently</option>`;
+      } else {
+        bookSelect.innerHTML = availableBooks.map(b => `
+          <option value="${b.id}">${b.title} [${b.availableCopies} available - ${b.shelf}]</option>
+        `).join('');
+      }
+    }
+
+    function handleQuickIssue(e) {
+      e.preventDefault();
+      const studentId = document.getElementById('issue-student-select').value;
+      const bookId = document.getElementById('issue-book-select').value;
+      const days = parseInt(document.getElementById('issue-period-days').value, 10);
+      const condition = document.getElementById('issue-condition').value;
+
+      const book = books.find(b => b.id === bookId);
+      const student = students.find(s => s.id === studentId);
+
+      if (!book || book.availableCopies <= 0) {
+        showToast('Selected book copy is no longer available.', 'error');
+        return;
+      }
+
+      // Check max borrow count
+      const activeLoansCount = loans.filter(l => l.studentId === studentId && !l.returnDate).length;
+      if (activeLoansCount >= 3) {
+        showToast(`Student ${student.name} already holds 3 books! Please return an item first.`, 'warning');
+        return;
+      }
+
+      book.availableCopies -= 1;
+
+      const newLoan = {
+        id: `LN-${Date.now().toString().slice(-4)}`,
+        bookId: book.id,
+        studentId: student.id,
+        issueDate: getDateString(0),
+        dueDate: getDateString(days),
+        returnDate: null,
+        condition: condition
+      };
+
+      loans.unshift(newLoan);
+      saveData();
+      renderAdminDashboard();
+      showToast(`Issued "${book.title}" to ${student.name} for ${days} days!`, 'success');
+    }
+
+    function renderAdminLoansList() {
+      const tbody = document.getElementById('admin-active-loans-tbody');
+      const counterPill = document.getElementById('active-loan-counter-pill');
+
+      const activeLoans = loans.filter(l => !l.returnDate);
+      counterPill.textContent = activeLoans.length;
+
+      if (activeLoans.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-8 text-center text-slate-400 text-xs">
+              All books returned! No active loans on the desk.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = activeLoans.map(loan => {
+        const book = books.find(b => b.id === loan.bookId) || { title: "Unknown", shelf: "-" };
+        const student = students.find(s => s.id === loan.studentId) || { name: "Unknown", rollNumber: "-" };
+        const fineInfo = calculateLoanFine(loan.dueDate);
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-3">
+              <span class="font-bold text-slate-800">${student.name}</span>
+              <span class="block text-[10px] text-slate-400">${student.rollNumber}</span>
+            </td>
+            <td class="py-3 px-3">
+              <span class="font-semibold text-slate-800">${book.title}</span>
+              <span class="block text-[10px] text-slate-400">${book.shelf}</span>
+            </td>
+            <td class="py-3 px-3 text-slate-600">
+              ${loan.dueDate}
+            </td>
+            <td class="py-3 px-3">
+              ${fineInfo.isOverdue ? `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                  <i data-lucide="alert-circle" class="w-3 h-3"></i> +₹${fineInfo.fine} Fine (${fineInfo.overdueDays}d late)
+                </span>
+              ` : `
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                  On Schedule
+                </span>
+              `}
+            </td>
+            <td class="py-3 px-3 text-right">
+              <button onclick="processReturnDesk('${loan.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition inline-flex items-center gap-1">
+                <i data-lucide="check" class="w-3 h-3"></i> Mark Returned
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function processReturnDesk(loanId) {
+      const loan = loans.find(l => l.id === loanId);
+      if (!loan) return;
+
+      const fineInfo = calculateLoanFine(loan.dueDate);
+      const book = books.find(b => b.id === loan.bookId);
+
+      loan.returnDate = getDateString(0);
+      if (book) {
+        book.availableCopies = Math.min(book.totalCopies, book.availableCopies + 1);
+      }
+
+      saveData();
+      renderAdminDashboard();
+
+      if (fineInfo.isOverdue) {
+        showToast(`Book returned! Collected overdue penalty fine of ₹${fineInfo.fine}.`, 'warning');
+      } else {
+        showToast(`Book safely returned and restocked in ${book ? book.shelf : 'Rack'}.`, 'success');
+      }
+    }
+
+    function simulateBookReturn(loanId) {
+      processReturnDesk(loanId);
+      renderStudentLoans();
+    }
+
+    function sendBulkOverdueReminders() {
+      const overdues = loans.filter(l => !l.returnDate && calculateLoanFine(l.dueDate).isOverdue);
+      if (overdues.length === 0) {
+        showToast('All students are up-to-date! No overdue reminders to send.', 'info');
+        return;
+      }
+      showToast(`Reminders & automated notices dispatched to ${overdues.length} students/parents.`, 'success');
+    }
+
+    /* -------------------------------------------------------------
+       ADMIN: INVENTORY CRUD MASTER
+       ------------------------------------------------------------- */
+    function renderInventoryTable() {
+      const tbody = document.getElementById('inventory-table-body');
+      
+      tbody.innerHTML = books.map(book => {
+        const isLow = book.availableCopies <= 1;
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-3 flex items-center space-x-3">
+              <img src="${book.cover}" alt="${book.title}" class="w-8 h-12 object-cover rounded shadow-sm flex-shrink-0" />
+              <div>
+                <span class="font-bold text-slate-800 text-xs">${book.title}</span>
+                <span class="block text-[11px] text-slate-400">by ${book.author} &bull; ISBN: ${book.isbn}</span>
+              </div>
+            </td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700">
+                ${book.category}
+              </span>
+            </td>
+            <td class="py-3 px-3 font-mono text-slate-600 text-xs">${book.shelf}</td>
+            <td class="py-3 px-3 font-semibold text-slate-700">${book.totalCopies}</td>
+            <td class="py-3 px-3">
+              <span class="font-bold ${isLow ? 'text-amber-600' : 'text-emerald-600'}">
+                ${book.availableCopies}
+              </span>
+            </td>
+            <td class="py-3 px-3">
+              ${book.availableCopies > 0 ? `
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 font-bold">In Stock</span>
+              ` : `
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-rose-50 text-rose-700 font-bold">Depleted</span>
+              `}
+            </td>
+            <td class="py-3 px-3 text-right">
+              <div class="flex items-center justify-end space-x-2">
+                <button onclick="openEditBookModal('${book.id}')" class="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-slate-100 rounded-lg transition" title="Edit">
+                  <i data-lucide="edit" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteBook('${book.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function openAddBookModal() {
+      document.getElementById('book-modal-title').textContent = 'Add New Book Title';
+      document.getElementById('book-form-id').value = '';
+      document.getElementById('book-form').reset();
+      document.getElementById('book-modal').classList.remove('hidden');
+    }
+
+    function openEditBookModal(bookId) {
+      const book = books.find(b => b.id === bookId);
+      if (!book) return;
+
+      document.getElementById('book-modal-title').textContent = 'Edit Book Inventory';
+      document.getElementById('book-form-id').value = book.id;
+      document.getElementById('book-form-title').value = book.title;
+      document.getElementById('book-form-author').value = book.author;
+      document.getElementById('book-form-category').value = book.category;
+      document.getElementById('book-form-isbn').value = book.isbn;
+      document.getElementById('book-form-shelf').value = book.shelf;
+      document.getElementById('book-form-copies').value = book.totalCopies;
+      document.getElementById('book-form-cover').value = book.cover;
+      document.getElementById('book-form-desc').value = book.description;
+
+      document.getElementById('book-modal').classList.remove('hidden');
+    }
+
+    function closeBookModal() {
+      document.getElementById('book-modal').classList.add('hidden');
+    }
+
+    function handleBookSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('book-form-id').value;
+      const title = document.getElementById('book-form-title').value.trim();
+      const author = document.getElementById('book-form-author').value.trim();
+      const category = document.getElementById('book-form-category').value;
+      const isbn = document.getElementById('book-form-isbn').value.trim();
+      const shelf = document.getElementById('book-form-shelf').value.trim();
+      const totalCopies = parseInt(document.getElementById('book-form-copies').value, 10);
+      let cover = document.getElementById('book-form-cover').value.trim();
+      const desc = document.getElementById('book-form-desc').value.trim();
+
+      if (!cover) {
+        cover = `https://placehold.co/400x550/1e293b/ffffff?text=${encodeURIComponent(title)}`;
+      }
+
+      if (id) {
+        // Edit existing
+        const bookIndex = books.findIndex(b => b.id === id);
+        if (bookIndex !== -1) {
+          const oldBook = books[bookIndex];
+          const copiesDifference = totalCopies - oldBook.totalCopies;
+          books[bookIndex] = {
+            ...oldBook,
+            title,
+            author,
+            category,
+            isbn,
+            shelf,
+            totalCopies,
+            availableCopies: Math.max(0, oldBook.availableCopies + copiesDifference),
+            cover,
+            description: desc
+          };
+          showToast(`Updated "${title}" successfully.`, 'success');
+        }
+      } else {
+        // Add new
+        const newBook = {
+          id: `BK-${Date.now().toString().slice(-4)}`,
+          title,
+          author,
+          category,
+          isbn,
+          shelf,
+          totalCopies,
+          availableCopies: totalCopies,
+          rating: 4.8,
+          cover,
+          description: desc || "Standard school curriculum reference title."
+        };
+        books.unshift(newBook);
+        showToast(`Added "${title}" to library inventory!`, 'success');
+      }
+
+      saveData();
+      closeBookModal();
+      renderCatalog();
+      renderInventoryTable();
+    }
+
+    function deleteBook(bookId) {
+      const book = books.find(b => b.id === bookId);
+      if (!book) return;
+
+      // Check if copies are currently loaned
+      const hasActiveLoan = loans.some(l => l.bookId === bookId && !l.returnDate);
+      if (hasActiveLoan) {
+        showToast(`Cannot delete "${book.title}" because copies are currently issued to students.`, 'error');
+        return;
+      }
+
+      books = books.filter(b => b.id !== bookId);
+      saveData();
+      renderCatalog();
+      renderInventoryTable();
+      showToast(`Removed "${book.title}" from catalog.`, 'info');
+    }
+
+    /* -------------------------------------------------------------
+       ADMIN: STUDENTS DIRECTORY
+       ------------------------------------------------------------- */
+    function renderStudentsDirectory() {
+      const tbody = document.getElementById('students-directory-tbody');
+      const countEl = document.getElementById('student-enrolled-count');
+      countEl.textContent = `${students.length} Students`;
+
+      tbody.innerHTML = students.map(student => {
+        const studentLoans = loans.filter(l => l.studentId === student.id && !l.returnDate);
+        let studentFines = 0;
+        studentLoans.forEach(l => {
+          studentFines += calculateLoanFine(l.dueDate).fine;
+        });
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-3 flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center">
+                ${student.initials}
+              </div>
+              <div>
+                <span class="font-bold text-slate-800 text-xs">${student.name}</span>
+                <span class="block text-[10px] text-slate-400">${student.email}</span>
+              </div>
+            </td>
+            <td class="py-3 px-3 font-mono text-slate-700 font-medium">${student.rollNumber}</td>
+            <td class="py-3 px-3 text-slate-600">${student.grade}</td>
+            <td class="py-3 px-3 font-semibold text-slate-700">${studentLoans.length} / 3 Books</td>
+            <td class="py-3 px-3">
+              ${studentFines > 0 ? `
+                <span class="font-bold text-rose-600">₹${studentFines}</span>
+              ` : `
+                <span class="text-emerald-600 font-medium">₹0 (Clear)</span>
+              `}
+            </td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">Good Standing</span>
+            </td>
+            <td class="py-3 px-3 text-right">
+              <button onclick="loginAs('${student.id}')" class="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-600 rounded-lg transition">
+                View Portal &rarr;
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /* -------------------------------------------------------------
+       LOGIN MODAL CONTROLS
+       ------------------------------------------------------------- */
+    function openLoginModal() {
+      document.getElementById('login-modal').classList.remove('hidden');
+    }
+
+    function closeLoginModal() {
+      document.getElementById('login-modal').classList.add('hidden');
+    }
+
+    /* -------------------------------------------------------------
+       APP INITIALIZATION
+       ------------------------------------------------------------- */
+    function initApp() {
+      updateAuthUI();
+      navigateTo(currentRole === 'admin' ? 'admin-dashboard' : 'catalog');
+      lucide.createIcons();
+    }
+
+    // Launch on DOM ready
+    window.onload = function() {
+      initApp();
+    };
+  </script>
+</body>
+</html>
